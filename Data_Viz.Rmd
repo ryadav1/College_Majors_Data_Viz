@@ -1,5 +1,5 @@
 ---
-title: "Mini Project 1"
+title: "College Majors - Who gets a job?"
 author: "Rajnish Yadav and Brent Jacobs"
 date: "Spring 2018"
 output: html_document
