@@ -1,0 +1,147 @@
+---
+title: "Mini Project 1"
+author: "Rajnish Yadav and Brent Jacobs"
+date: "Spring 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+```{r, results = FALSE}
+library(fivethirtyeight)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(ggthemes)
+library(scales)
+
+```
+
+College students pursue their degrees, with little exception, hoping for a better chance at success. With half of young graduates in Petroleum  Engineering earning $110k or more it is easy to imagine what a Petro Engineering major is pursuing. Even students dogged by “How are you going  to get a job with that?” every Thanksgiving, however, are more likely  than not seeking success in terms of a fulfilling life or a vibrant intellectual life. 
+
+But, “vibrant intellectual life” is hard to quantify— and doesn’t pay much rent. And, even if a Maserati isn't your idea of success, paying the rent probably should be. With that in mind---and unemployed 20-somethings such a meme nowadays---we'll focus on some more bare-basics measures: Do young graduates in fields such as Arts, Education, Health, etc. have a job? Does it pay something livable?
+
+We're focusing on US college graduates under 28 years-old. These data are estimates from fivethirtyeight.com, based on the American Community Survey 2010-2012 Public Use Microdata Series. 
+
+Unsurprisingly, the jobs new Arts grads find are more likely to be low paying than for new Engineers. But, "low paying job" is a very different matter than "no job at all". Here, Education really leads the pack, and even the "hard" Sciences look to be laggards compared to those oft-mocked Artists. Each of these are good measures of job-market success, but they don't correlate---a grain of salt the next time someone shares a USNews "Highest paying majors" listicle. 
+
+
+```{r, fig.width = 8, fig.height = 8}
+recent <- college_recent_grads
+
+#reduces name length, for plotting
+abbreviate_majors <- function(x) { 
+  x <- sub("Science[s]*", "Sci.", x)
+  x <- sub("Mathematics", "Math.", x)
+  x <- sub("Agriculture", "Ag.", x)
+  x <- sub("Psychology", "Psych.", x)
+}
+
+
+recent <- recent %>%
+  mutate(major_category_abbr = abbreviate_majors(major_category)) %>%
+  filter(employed > 0)
+
+#condenses data to by major category
+recent_cat <- recent %>% 
+  group_by(major_category) %>%
+  summarize(major_category_abbr = major_category_abbr[1],
+            total = sum(total),
+            employed = sum(employed),
+            low_wage_jobs = sum(low_wage_jobs),
+            non_college_jobs = sum(non_college_jobs),
+            women = sum(women)) %>%
+  select(major_category, major_category_abbr, total, employed, low_wage_jobs, non_college_jobs, women) %>% 
+  arrange(desc(total)) 
+
+#derived from Tableau20
+colors = c("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#17becf", 
+           "#e377c2", "#9467bd", "#aec7e8", "#bcbd22", "#052050",  
+           "#98df8a", "#ff9896", "#8c564b", "#c49c94", 
+           "#7f7f7f", "#ddcf02")
+
+ggplot(recent_cat, 
+       aes(x = employed / total, 
+           y = low_wage_jobs / total, 
+           label = major_category_abbr, 
+           color = major_category_abbr,
+           size = total)) +
+  geom_point(alpha = 0.5) + #major categories
+  geom_point(data = recent, shape = 21, alpha = 0.6) + #all majors
+  geom_text(size = 4, alpha = 1, check_overlap = TRUE, hjust = "outward", vjust = "outward") + 
+  scale_color_manual(values = colors) +
+  guides(color = FALSE) +
+  labs(size = "Number of majors", 
+       x = "Percent employed", 
+       y = "Percent of employed in low paying jobs",
+       title = "Majors and employment, disciplines and sub-disciplines",
+       subtitle = "2010-12, college graduates, age < 28") +
+  theme_minimal() +
+    theme(legend.position = "bottom", text = element_text(size =13)) +
+  scale_x_continuous(limits = c(NA,1), labels = scales::percent) + 
+  scale_y_continuous(labels = scales::percent)
+
+```
+
+
+Another couple grains of salt: Those highest-salary figures say as much about **who** studies what as about how much they earn. Many women study in Education and Health fields. From the previous plot, we can see this as a prudent decision; graduates in either fields are unlikely to be left unemployed or in a low-paying job. You won't find either in one of those highest-salary listicles, however. With only 12% of majors in Petroleum Engineering (oh, that wellspring of human goodness!) being women, those salary figures should also make us question why we're considering some labor, and laborers, worth paying so much less. 
+
+
+```{r, fig.width = 10, fig.height = 6}
+# library(fivethirtyeight)
+# 
+# colors = c("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#17becf", 
+#            "#e377c2", "#9467bd", "#aec7e8", "#bcbd22", "#052050",  
+#            "#98df8a", "#ff9896", "#8c564b", "#c49c94", 
+#            "#7f7f7f", "#ddcf02")
+# 
+# ggplot(college_recent_grads,
+#        aes(x = median,
+#            y = sharewomen,
+#            color = major_category)) +
+#   geom_point(alpha = .6) +
+#   scale_x_continuous(labels = scales::comma,
+#                      breaks = c(20000, 40000, 60000, 80000, 100000)) +
+#   scale_y_continuous(labels = scales::percent) +
+#   scale_color_manual(values = colors) +
+#   labs(x = "Median Income",
+#        y = "Percentage of women employed",
+#        title = "Gender and Income by College Majors",
+#        subtitle = "2010-12, college graduates, age < 28") +
+#   theme_minimal() +
+#   theme(legend.position = "bottom")
+
+```
+
+```{r, fig.width = 10, fig.height = 6}
+library(fivethirtyeight)
+
+colors = c("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#17becf", 
+           "#e377c2", "#9467bd", "#aec7e8", "#bcbd22", "#052050",  
+           "#98df8a", "#ff9896", "#8c564b", "#c49c94", 
+           "#7f7f7f", "#ddcf02")
+
+highlight <- college_recent_grads %>% filter(major_category %in% c("Health","Education","Engineering"))
+
+ggplot(college_recent_grads,
+       aes(x = median,
+           y = sharewomen,
+           color = major_category)) +
+  geom_point(alpha = .3) +
+  geom_point(data = highlight, alpha = 0.8, size = 5) + 
+  scale_x_continuous(labels = scales::comma,
+                     breaks = c(20000, 40000, 60000, 80000, 100000)) +
+  scale_y_continuous(labels = scales::percent) +
+  scale_color_manual(values = colors) +
+  labs(x = "Median Income",
+       y = "Percentage of women employed",
+       title = "Gender and Income by College Majors",
+       subtitle = "2010-12, college graduates, age < 28") +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+```
